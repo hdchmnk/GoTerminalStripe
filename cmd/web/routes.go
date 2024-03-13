@@ -9,6 +9,7 @@ func (app *application) routes() http.Handler {
 	r := chi.NewRouter()
 
 	r.Get("/virtual-terminal", app.VirtualTerminal)
+	r.Post("/payment-succeeded", app.PaymentSucceed)
 
 	return r
 }

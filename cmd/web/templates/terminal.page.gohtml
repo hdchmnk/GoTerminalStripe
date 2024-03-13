@@ -29,7 +29,7 @@
 
         <div class="mb-3">
             <label for="cardholder-email" class="form-label">Cardholder Email</label>
-            <input type="email" class="form-control" id="cardholder-email" name="cardholder_email"
+            <input type="email" class="form-control" id="cardholder-email" name="email"
                    required="" autocomplete="cardholder-email-new">
         </div>
 
@@ -50,6 +50,11 @@
         </div>
 
 
+        <input type="hidden" name="payment_intent" id="payment_intent">
+        <input type="hidden" name="payment_method" id="payment_method">
+        <input type="hidden" name="payment_amount" id="payment_amount">
+        <input type="hidden" name="payment_currency" id="payment_currency">
+
     </form>
 
 {{end}}
@@ -64,11 +69,30 @@
         const payButton = document.getElementById("pay-button")
         const processing = document.getElementById("processing-payment")
 
-        stripe = Stripe('pk_test_51OtCPnRprrpx6lzEtzkUPzEmKzyIGBzH9XScRHfKWemA0UUEisz5sl5KvEtB2wbRJcvu4xUUgCNjfDwdoOOPR1QN009R1JDLnV');
+        stripe = Stripe({{index .StringMap "publishable_key"}});
 
         function hidePayButton() {
             payButton.classList.add("d-none")
             processing.classList.remove("d-none")
+        }
+
+        function showPayButton() {
+            payButton.classList.remove("d-none")
+            processing.classList.add("d-none")
+        }
+
+        function showCardError(msg) {
+            cardMessage.classList.add("alert-danger")
+            cardMessage.classList.remove("alert-success")
+            cardMessage.classList.remove("d-none")
+            cardMessage.innerText = msg
+        }
+
+        function showCardSuccess() {
+            cardMessage.classList.remove("alert-danger")
+            cardMessage.classList.add("alert-success")
+            cardMessage.classList.remove("d-none")
+            cardMessage.innerText = "Transaction successul"
         }
 
         function val() {
@@ -81,6 +105,60 @@
             }
             form.classList.add("was-validated")
             hidePayButton()
+
+            let amountToCharge = String(parseFloat(document.getElementById("amount").value) *100)
+
+            let payload = {
+                amount: amountToCharge,
+                currency: "cad"
+            }
+
+            const requestOptions = {
+                method: 'post',
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload),
+            }
+
+            fetch("{{.API}}", requestOptions)
+                .then(response => response.text())
+                .then(response => {
+                    let data
+                    try {
+                        data = JSON.parse(response)
+                        stripe.confirmCardPayment(data.client_secret, {
+                            payment_method: {
+                                card: card,
+                                billing_details: {
+                                    name: document.getElementById("cardholder-name").value,
+                            }
+
+                            }
+                        }).then(function (result) {
+                            if (result.error) {
+                                showCardError(result.error.message)
+                                showPayButton()
+                            } else if(result.paymentIntent) {
+                                if (result.paymentIntent.status === "succeeded") {
+                                    document.getElementById("payment_method").value = result.paymentIntent.payment_method_types[0]
+                                    document.getElementById("payment_intent").value = result.paymentIntent.id
+                                    document.getElementById("payment_amount").value = result.paymentIntent.amount
+                                    document.getElementById("payment_currency").value = result.paymentIntent.currency
+                                    processing.classList.add("d-none")
+                                    showCardSuccess()
+                                    document.getElementById("charge_form").submit()
+                                }
+                            }
+                        })
+
+                    } catch (err) {
+                        console.log(err)
+                        showCardError("Invalid response from payment gateway")
+                        showPayButton()
+                    }
+                })
         }
 
         (function () {

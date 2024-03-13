@@ -11,12 +11,10 @@ import (
 )
 
 const version = "1.0.0"
-const cssVersion = "1"
 
 type config struct {
 	port int
 	env  string
-	api  string
 	db   struct {
 		dsn string
 	}
@@ -44,16 +42,15 @@ func (app *application) serve() error {
 		WriteTimeout:      5 * time.Second,
 	}
 
-	app.infoLog.Println(fmt.Sprintf("Starting HTTP server in %s mode on port %d", app.config.env, app.config.port))
+	app.infoLog.Println(fmt.Sprintf("[BACKEND] Starting HTTP server in %s mode on port %d", app.config.env, app.config.port))
 	return srv.ListenAndServe()
 }
 
 func main() {
 	var cfg config
 
-	flag.IntVar(&cfg.port, "port", 4000, "Server port to listen on")
+	flag.IntVar(&cfg.port, "port", 4001, "Server port to listen on")
 	flag.StringVar(&cfg.env, "enc", "development", "Application environment [development/production]")
-	flag.StringVar(&cfg.api, "api", "http://localhost:4001", "URL to API")
 
 	flag.Parse()
 
@@ -67,6 +64,7 @@ func main() {
 		config:   cfg,
 		infoLog:  infoLog,
 		errorLog: errorLog,
+		version:  version,
 	}
 
 	err := app.serve()
