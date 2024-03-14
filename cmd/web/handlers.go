@@ -1,6 +1,8 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+)
 
 func (app *application) VirtualTerminal(w http.ResponseWriter, r *http.Request) {
 	stringMap := make(map[string]string)
